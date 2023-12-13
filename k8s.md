@@ -15,11 +15,17 @@ Docker 项目通过“容器镜像”，解决了应用打包这个根本性难�
 被方便地搬来搬去，这不就是 PaaS 最理想的状态嘛。
 
 ##### 容器技术的核心功能，就是通过约束和修改进程的动态表现，从而为其创造出一个“边界”。
+Docker 容器这个听起来玄而又玄的概念，实际上是在创建容器进程时，指定了这个进程所需要启用的一组 Namespace 参数。这样，容器就只能“看”到当前 Namespace
+所限定的资源、文件、设备、状态，或者配置。而对于宿主机以及其他不相关的程序，它就完全看不到了
+#### 所以 容器，其实是一种特殊的进程而已。
 
-#### 容器，其实是一种特殊的进程而已。
+容器技术的核心功能，就是通过约束和修改进程的动态表现，从而为其创造出一个“边界”。
 
-“敏捷”和“高性能”是容器相较于虚拟机最大的优势，也是它能够在 PaaS 这
-种更细粒度的资源管理平台上大行其道的重要原因。
+“敏捷”和“高性能”是容器相较于虚拟机最大的优势，也是它能够在 PaaS 这种更细粒度的资源管理平台上大行其道的重要原因。
+
+Cgroups 技术是用来制造约束的主要手段
+#### Namespace 技术则是用来修改进程视图的主要方法。（比如：被隔离应用的进程空间做了手脚，使得这些进程只能看到重新计算过
+的进程编号，比如 PID=1。可实际上，他们在宿主机的操作系统里，还是原来的第 100 号进程。）
 
 #### Linux Cgroups 的全称是 Linux Control Group。它最主要的作用，就是限制一个进程组能够使用的资源上限，包括 CPU、内存、磁盘、网络带宽等等。
 
@@ -80,7 +86,7 @@ Dockerfile 中的每个原语执行后，都会生成一个对应的镜像层
 
 2. 一个由 Namespace+Cgroups 构成的隔离环境，这一部分我们称为“容器运行时”（Container Runtime），是容器的动态视图。
    
-## Kubernetes
+# Kubernetes #
 ![image](https://github.com/rita-zu/k8s/assets/153474666/c66b37f3-3c39-4c59-aebf-bf6ecb9b3338)
 
 Kubernetes 项目的架构，跟它的原型项目 Borg 非常类似，都由 Master
@@ -119,3 +125,21 @@ Kubernetes 项目提供了一种叫作 Secret 的对象，它其实是一个保�
 相比之下，在 Kubernetes 项目中，我们所推崇的使用方法是：首先，通过一个“编排对象”，比如 Pod、Job、CronJob 等，来描述你试图管理的应用；
 然后，再为它定义一些“服务对象”，比如 Service、Secret、Horizontal Pod Autoscaler（自动水平扩展器）等。这些对象，会负责具体的平台级功能。
 这种使用方法，就是所谓的“声明式 API”。这种 API 对应的“编排对象”和“服务对象”，都是 Kubernetes 项目中的 API 对象（API Object）。
+
+# kubeadm 的工作原理
+
+把 kubelet 直接运行在宿主机上，然后使用容器部署其他的 Kubernetes 组件
+
+所以，你使用 kubeadm 的第一步，是在机器上手动安装 kubeadm、kubelet 和 kubectl这三个二进制文件。当然，kubeadm 的作者已经为各个发行版的 Linux 准备好了安装包，
+所以你只需要执行：
+1 $ apt-get install kubeadm 就可以了。
+接下来，你就可以使用“kubeadm init”部署 Master 节点了。
+
+kubeadm 部署 Kubernetes 集群最关键的两个步骤，kubeadm init 和 kubeadm join。
+
+有一种特殊的容器启动方法叫做“Static Pod”。它允许你把要部署的
+Pod 的 YAML 文件放在一个指定的目录里。这样，当这台机器上的 kubelet 启动时，它会自动检查这个目录，加载所有的 Pod YAML 文件，然后在这台机器上启动它们。
+1 $ ls /etc/kubernetes/manifests/
+2 etcd.yaml kube-apiserver.yaml kube-controller-manager.yaml kube-scheduler.yaml
+
+而一旦这些 YAML 文件出现在被 kubelet 监视的 /etc/kubernetes/manifests 目录下，kubelet 就会自动创建这些 YAML 文件中定义的 Pod，即 Master 组件的容器。
