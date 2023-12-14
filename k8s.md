@@ -268,3 +268,20 @@ StatefulSet 这个控制器的主要作用之一，就是使用 Pod 模板创建
 致，需要新建或者删除 Pod 进行“调谐”的时候，它会严格按照这些 Pod编号的顺序，逐一完成这些操作。
 
 #### StatefulSet 其实就是一种特殊的Deployment，而其独特之处在于，它的每个 Pod 都被编号了。而且，这个编号会体现在Pod 的名字和 hostname 等标识信息上，这不仅代表了 Pod 的创建顺序，也是 Pod 的重要网络标识（即：在整个集群里唯一的、可被的访问身份）。有了这个编号后，StatefulSet 就使用 Kubernetes 里的两个标准功能：Headless Service和 PV/PVC，实现了对 Pod 的拓扑状态和存储状态的维护。
+
+#### DaemonSet 的主要作用，是让你在 Kubernetes 集群里，运行一个 Daemon
+Pod。 所以，这个 Pod 有如下三个特征：
+1. 这个 Pod 运行在 Kubernetes 集群里的每一个节点（Node）上；
+2. 每个节点上只有一个这样的 Pod 实例；
+3. 当有新的节点加入 Kubernetes 集群后，该 Pod 会自动地在新节点上被创建出来；而当
+旧节点被删除后，它上面的 Pod 也相应地会被回收掉。
+
+
+## RBAC
+在 Kubernetes 项目中，负责完成授权（Authorization）工作的机制，就是 RBAC：
+基于角色的访问控制（Role-Based Access Control）。
+
+1. Role：角色，它其实是一组规则，定义了一组对 Kubernetes API 对象的操作权限。
+2. Subject：被作用者，既可以是“人”，也可以是“机器”，也可以使你在 Kubernetes里定义的“用户”。
+3. RoleBinding：定义了“被作用者”和“角色”的绑定关系。
+   而这三个概念，其实就是整个 RBAC 体系的核心所在。
