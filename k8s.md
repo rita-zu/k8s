@@ -285,3 +285,36 @@ Pod。 所以，这个 Pod 有如下三个特征：
 2. Subject：被作用者，既可以是“人”，也可以是“机器”，也可以使你在 Kubernetes里定义的“用户”。
 3. RoleBinding：定义了“被作用者”和“角色”的绑定关系。
    而这三个概念，其实就是整个 RBAC 体系的核心所在。
+
+PV 
+PV 描述的，是持久化存储数据卷。这个 API 对象主要定义的是一个持久化存储在宿主机上的目录，比如一个 NFS (etwork File System）的挂载目录
+
+而PVC 描述的，则是 Pod 所希望使用的持久化存储的属性。比如，Volume 存储的大小、可读写权限等等。
+
+第一个条件，当然是 PV 和 PVC 的 spec 字段。比如，PV 的存储（storage）大小，就必须满足 PVC 的要求。
+而第二个条件，则是 PV 和 PVC 的 storageClassName 字段必须一样。这个机制我会在本篇文章的最后一部分专门介绍。
+
+PVC 和 PV 的设计，其实跟“面向对象”的思想完全一致。
+
+所谓容器的 Volume，其实就是将一个宿主机上的目录，跟一个容器里的目录绑定挂载在了一起。
+
+而所谓的“持久化 Volume”，指的就是这个宿主机上的目录，具备“持久性”。即：这个目录里面的内容，既不会因为容器的删除而被清理掉，也不会跟当前的宿主机绑定。这样，当容器被重启或者在其他节点上重建出来之后，它仍然能够通过挂载这个 Volume，访问到这些内容。
+
+显然，我们前面使用的 hostPath 和 emptyDir 类型的 Volume 并不具备这个特征：它们既有可能被 kubelet 清理掉，也不能被“迁移”到其他节点上。
+
+所谓“持久化”，指的是容器在这个目录里写入的文件，都会保存在远程存储中，从而使得这个目录具备了“持久性”。
+
+Kubernetes 为我们提供了一套可以自动创建 PV 的机制，即：DynamicProvisioning。
+相比之下，前面人工管理 PV 的方式就叫作 Static Provisioning。
+Dynamic Provisioning 机制工作的核心，在于一个名叫 StorageClass 的 API 对象。
+而 StorageClass 对象的作用，其实就是创建 PV 的模板。
+
+StorageClass 对象会定义如下两个部分内容：
+第一，PV 的属性。比如，存储类型、Volume 的大小等等。
+第二，创建这种 PV 需要用到的存储插件。比如，Ceph 等等。
+![image](https://github.com/rita-zu/k8s/assets/153474666/ffdc0960-8346-4677-8caa-12ccbdc80119)
+
+从图中我们可以看到，在这个体系中：
+PVC 描述的，是 Pod 想要使用的持久化存储的属性，比如存储的大小、读写权限等。
+PV 描述的，则是一个具体的 Volume 的属性，比如 Volume 的类型、挂载目录、远程存储服务器地址等。
+而 StorageClass 的作用，则是充当 PV 的模板。并且，只有同属于一个 StorageClass的 PV 和 PVC，才可以绑定在一起。
